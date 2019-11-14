@@ -1,12 +1,9 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Test with RxJS</title>
-</head>
 <body>
-    <button>Click me</button>
+    <!-- <button>Click me</button>
     <br />
-    <br />
+    <br /> -->
 
     <input type="text" id="txt-input" placeholder="hello rx">
     <ul id="list">
@@ -14,31 +11,44 @@
     </ul>
 
     <script type="text/javascript" src="https://unpkg.com/rxjs@6.2.2/bundles/rxjs.umd.min.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     
     <script type="text/javascript">
+        const observable = rxjs.Observable.create((observer) => {
+          observer.next(1);
+          observer.next(2);
+          // observer.error(' ｡゜(｀Д´)゜｡ ');
+          // observer.complete();
+          observer.next(3);
+        });
+        const observer = {
+          next: (data) => console.log('next value: ' + data),
+          error: err => console.error('error: ' + err),
+          complete: () => console.log('completed ヾ(⌐■_■)ノ♪'),
+        }
+        observable.subscribe(observer)
+
+// ==========
+        // const observable = rxjs.from([1, 2, 3])
+        // observable.subscribe((data) => console.log('next value: ' + data))
+
+
         // Dom Element
-        var button = document.querySelector('button');
+        // var button = document.querySelector('button');
         var txtInput = document.querySelector('#txt-input');
         var list = $('#list');
         // Button click event - Traditional way
-        // button.addEventListener('click', async(e) => {
-        //     const data = await axios.get('https://jsonplaceholder.typicode.com/albums')
-        //     console.log(data);
-        //     return data
+        // button.addEventListener('click', (e) => {
+        //     console.log('click ლ(ಠ益ಠლ!!!');
         // });
 
-        rxjs.fromEvent(button, 'click')
-            .pipe(
-                rxjs.operators.throttleTime(1000),
-                rxjs.operators.switchMap( function(e) {
-                    return rxjs.ajax.ajax('https://jsonplaceholder.typicode.com/albums');
-                }),
-            )
-            .subscribe( function(data) {
-                console.log(data.response);
-            });
+        // rxjs.fromEvent(button, 'click')
+        //     .pipe(
+        //         rxjs.operators.throttleTime(1000), //make the api request as soon as user clicks the button
+        //     )
+        //     .subscribe( function(data) {
+        //         console.log('click σ(≧ε≦ｏ)');
+        //     });
 
         // Textbox
         rxjs.fromEvent(txtInput, 'keyup')
@@ -46,21 +56,24 @@
                 rxjs.operators.map(
                     e => e.target.value // Project the text from the input
                 ),
-                rxjs.operators.filter(txt => txt.length >= 2),   // search only more than 1 text
-                rxjs.operators.debounceTime(500 /* Pause for 500ms */),
+                rxjs.operators.filter(txt => txt.length >= 2),
+                rxjs.operators.tap(txt => console.log(txt)),
+                rxjs.operators.debounceTime(500), //waits for additional delay.
+                rxjs.operators.tap(txt => console.log('======after waiting=======' + txt)),
                 rxjs.operators.distinctUntilChanged(),  // Only if the value has changed
-                rxjs.operators.switchMap( // can cancel ajax request
+                rxjs.operators.switchMap( // can cancel ajax request //only the response to the last request is rendered, and all previous requests are canceled.
                     txt => rxjs.ajax.ajax(`http://en.wikipedia.org/w/api.php?origin=*&action=opensearch&format=json&search=${txt}`)
                 )
             )
-            .subscribe(e => {
-                console.log(e)
-                if(e.response[1].length > 0) {
+            .subscribe(event => {
+                console.log(event)
+                if(event.response[1].length > 0) {
                     list.empty()
-                        .append( $.map(e.response[1], data => $('<li>').text(data)) );
+                        .append( $.map(event.response[1], data => $('<li>').text(data)) );
                 } else {
-                    list.empty().append('no data')
+                    list.empty().append('no data ε-(‘ﾍ´○)┓')
                 }
+
             }, err => {
                 list.empty().append($('<li>')).text('Error. ' + err);
             })
