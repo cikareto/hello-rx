@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test with RxJS</title>
+</head>
+<body>
+    <button>Click me</button>
+    <br />
+    <br />
+
+    <input type="text" id="txt-input" placeholder="hello rx">
+    <ul id="list">
+        <li>Hello RX</li>
+    </ul>
+
+    <script type="text/javascript" src="https://unpkg.com/rxjs@6.2.2/bundles/rxjs.umd.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    
+    <script type="text/javascript">
+        // Dom Element
+        var button = document.querySelector('button');
+        var txtInput = document.querySelector('#txt-input');
+        var list = $('#list');
+        // Button click event - Traditional way
+        // button.addEventListener('click', async(e) => {
+        //     const data = await axios.get('https://jsonplaceholder.typicode.com/albums')
+        //     console.log(data);
+        //     return data
+        // });
+
+        rxjs.fromEvent(button, 'click')
+            .pipe(
+                rxjs.operators.throttleTime(1000),
+                rxjs.operators.switchMap( function(e) {
+                    return rxjs.ajax.ajax('https://jsonplaceholder.typicode.com/albums');
+                }),
+            )
+            .subscribe( function(data) {
+                console.log(data.response);
+            });
+
+        // Textbox
+        rxjs.fromEvent(txtInput, 'keyup')
+            .pipe(
+                rxjs.operators.map(
+                    e => e.target.value // Project the text from the input
+                ),
+                rxjs.operators.filter(txt => txt.length >= 2),   // search only more than 1 text
+                rxjs.operators.debounceTime(500 /* Pause for 500ms */),
+                rxjs.operators.distinctUntilChanged(),  // Only if the value has changed
+                rxjs.operators.switchMap( // can cancel ajax request
+                    txt => rxjs.ajax.ajax(`http://en.wikipedia.org/w/api.php?origin=*&action=opensearch&format=json&search=${txt}`)
+                )
+            )
+            .subscribe(e => {
+                console.log(e)
+                if(e.response[1].length > 0) {
+                    list.empty()
+                        .append( $.map(e.response[1], data => $('<li>').text(data)) );
+                } else {
+                    list.empty().append('no data')
+                }
+            }, err => {
+                list.empty().append($('<li>')).text('Error. ' + err);
+            })
+    </script>
+</body>
+</html>
